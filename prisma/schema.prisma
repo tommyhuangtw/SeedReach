@@ -1,8 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
   provider = "prisma-client"
   output   = "../src/generated/prisma"
@@ -10,4 +5,114 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+}
+
+model User {
+  id           String   @id @default(uuid()) @db.Uuid
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  name         String?
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@map("users")
+}
+
+model Kol {
+  id             String   @id @default(uuid()) @db.Uuid
+  igHandle       String   @unique @map("ig_handle")
+  name           String?
+  avatarUrl      String?  @map("avatar_url")
+  followersCount Int?     @map("followers_count")
+  engagementRate Decimal? @map("engagement_rate") @db.Decimal
+  category       String?
+  tags           String[] @default([])
+  contactEmail   String?  @map("contact_email")
+  contactLine    String?  @map("contact_line")
+  contactPhone   String?  @map("contact_phone")
+  status         String   @default("潛在")
+  notes          String?
+  source         String?
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  activities     KolActivity[]
+  outreachEmails OutreachEmail[]
+
+  @@map("kols")
+}
+
+model KolActivity {
+  id          String   @id @default(uuid()) @db.Uuid
+  kolId       String   @map("kol_id") @db.Uuid
+  action      String
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  kol Kol @relation(fields: [kolId], references: [id], onDelete: Cascade)
+
+  @@map("kol_activities")
+}
+
+model DiscoverySearch {
+  id           String   @id @default(uuid()) @db.Uuid
+  query        String
+  searchType   String?  @map("search_type")
+  resultsCount Int?     @map("results_count")
+  apifyRunId   String?  @map("apify_run_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  results DiscoveryResult[]
+
+  @@map("discovery_searches")
+}
+
+model DiscoveryResult {
+  id             String   @id @default(uuid()) @db.Uuid
+  searchId       String   @map("search_id") @db.Uuid
+  igHandle       String?  @map("ig_handle")
+  name           String?
+  followersCount Int?     @map("followers_count")
+  engagementRate Decimal? @map("engagement_rate") @db.Decimal
+  bio            String?
+  avatarUrl      String?  @map("avatar_url")
+  isAdded        Boolean  @default(false) @map("is_added")
+  rawData        Json?    @map("raw_data")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  search DiscoverySearch @relation(fields: [searchId], references: [id])
+
+  @@map("discovery_results")
+}
+
+model EmailTemplate {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  subject   String
+  body      String
+  variables String[] @default([])
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  outreachEmails OutreachEmail[]
+
+  @@map("email_templates")
+}
+
+model OutreachEmail {
+  id           String    @id @default(uuid()) @db.Uuid
+  kolId        String?   @map("kol_id") @db.Uuid
+  templateId   String?   @map("template_id") @db.Uuid
+  toEmail      String    @map("to_email")
+  subject      String
+  body         String
+  status       String    @default("草稿")
+  scheduledAt  DateTime? @map("scheduled_at")
+  sentAt       DateTime? @map("sent_at")
+  errorMessage String?   @map("error_message")
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  kol      Kol?           @relation(fields: [kolId], references: [id])
+  template EmailTemplate? @relation(fields: [templateId], references: [id])
+
+  @@map("outreach_emails")
 }
